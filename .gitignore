@@ -11,3 +11,7 @@ wheels/
 
 # Environment variables
 .env
+
+# Scraping state
+scraping_state.json
+publications.csv
