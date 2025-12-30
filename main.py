@@ -6,10 +6,13 @@ from progress_state import load_state, save_state, save_to_csv, save_to_csv_init
 start_time = datetime.now()
 print(f"Tiempo de inicio: {start_time}")
 
+BASE_URL = "URL_DE_EJEMPLO" # Reemplazar con la URL base real si es necesario
+TARGET_URL = "URL_DE_EJEMPLO" # Reemplazar con la URL real
+
 data = []
 
 def run(playwright: Playwright) -> None:
-    url = "URL_DE_EJEMPLO" # Reemplazar con la URL real 
+    url = TARGET_URL
     chrome = playwright.chromium
     browser = chrome.launch(headless=False)
     context = browser.new_context()
@@ -38,6 +41,17 @@ def run(playwright: Playwright) -> None:
         print(f"  ⚠️  Error {response.status}  url: {url}")
         page.close()
         return
+
+    # Navegar a la página donde quedamos
+    if start_page > 1:
+        print(f"⏩ Avanzando a la página {start_page}...")
+        for _ in range(start_page - 1):
+            next_btn = page.locator('') # Completar con el selector adecuado
+            if next_btn.count() > 0:
+                next_btn.click()
+            else:
+                print("⚠️ No se pudo avanzar, iniciando desde página actual")
+                break    
     
     
     current_page = start_page
@@ -49,9 +63,8 @@ def run(playwright: Playwright) -> None:
         print(f"\n📄 Procesando página {current_page} ({len(elements)} elementos)")
 
         for idx, element in enumerate(elements, 1):
-            element_page = context.new_page() # Abrir nueva pestaña
-            base_url = "BASE_URL" # Reemplazar con la URL base real si es necesario
-            element_url = element.get_attribute("href") or base_url + element.get_attribute("href") # Completa el atributo href si es necesario
+            element_page = context.new_page() # Abrir nueva pestaña            
+            element_url = element.get_attribute("href") # or BASE_URL + element.get_attribute("href") # Completa el atributo href si es necesario
             
             # Saltar si ya procesamos esta URL
             if element_url in processed_urls:
@@ -96,8 +109,8 @@ def run(playwright: Playwright) -> None:
 
         # Lógica de paginacion y break 
         ''' leer el número de página actual y total      
-        @ejemplo de selector: <span class="text-base -mt-1">1 de 10</span>
-        page_number = (page.locator('span[class="text-base -mt-1"]').text_content().split(' '))
+        @ejemplo de selector: <span class="next-page-btn">1 de 10</span>
+        page_number = (page.locator('span[class="next-page-btn"]').text_content().split(' '))
         @returns ['1', 'de', '10']
         '''
         page_number = page.locator('') # Completar con el selector adecuado

@@ -14,4 +14,4 @@ wheels/
 
 # Scraping state
 scraping_state.json
-publications.csv
+scraping_results.csv
