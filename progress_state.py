@@ -12,15 +12,16 @@ def load_state()-> dict:
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, 'r') as f:
             return json.load(f)
-    return {"last_page": 0, "processed_urls": []}
+    return {"last_page": 0, "processed_urls": [], "processed_documents_urls": []}
 
 # Guarda el estado actual del scraping en scraping_state.json
-def save_state(page_num, processed_urls):
+def save_state(page_num, processed_urls, processed_documents_urls):
     """Guarda el estado actual"""
     with open(STATE_FILE, 'w') as f:
         json.dump({
             "last_page": page_num,
             "processed_urls": processed_urls,
+            "processed_documents_urls": processed_documents_urls,
             "last_update": datetime.now().isoformat()
         }, f, indent=2)
 

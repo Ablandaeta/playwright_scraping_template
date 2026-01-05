@@ -32,9 +32,11 @@ def run(playwright: Playwright) -> None:
     state = load_state()
     start_page = state["last_page"] + 1
     processed_urls = set(state["processed_urls"])
+    processed_documents_urls = set(state["processed_documents_urls"])
     
     print(f"📌 Iniciando desde la página {start_page}")
     print(f"📊 URLs ya procesadas: {len(processed_urls)}")
+    print(f"📊 Documentos ya procesados: {len(processed_documents_urls)}")
     response = page.goto(url)
 
     if response and (response.status == 500 or response.status == 404):
@@ -72,10 +74,18 @@ def run(playwright: Playwright) -> None:
                 element_page.close()
                 continue
 
+            if element_url in processed_urls:
+                print(f"     ⏭️  Ya procesada: {element_url}")
+                continue
+
             if element_url is not None:
                 try:
                     response = element_page.goto(element_url)
-                    title = element_page.locator('').text_content()  # Completar con el selector adecuado
+                    document_url = element_page.locator('').text_content()  # Completar con el selector adecuado
+                    if document_url in processed_documents_urls:
+                        print(f"     ⏭️  Documento procesado: {document_url}")
+                        continue
+
                     page_data.append([title, element_url])  # Guardar datos de la publicación
                     processed_urls.add(element_url)
                     print(f"  ✅ [{idx}/{len(elements)}] {title[:50]}...")
@@ -98,21 +108,17 @@ def run(playwright: Playwright) -> None:
         # Guardar progreso de esta página
         if page_data:
             if current_page == 1:
-                save_to_csv_init([['Título', 'URL']])  # Encabezados CSV (solo primera página)
+                # Inicializar CSV
+                save_to_csv_init([['Título', 'Fecha','Document_URL']]) # titulos de las columnas
             save_to_csv(page_data)
             data.extend(page_data)
             print(f"💾 Guardados {len(page_data)} registros de la página {current_page}")
             page_data = []
         
         # Guardar estado
-        save_state(current_page, list(processed_urls))
+        save_state(current_page, list(processed_urls), list(processed_documents_urls))
 
-        # Lógica de paginacion y break 
-        ''' leer el número de página actual y total      
-        @ejemplo de selector: <span class="next-page-btn">1 de 10</span>
-        page_number = (page.locator('span[class="next-page-btn"]').text_content().split(' '))
-        @returns ['1', 'de', '10']
-        '''
+        # Lógica de paginacion y break
         page_number = page.locator('') # Completar con el selector adecuado
         print(f"📍 Página {page_number[0]} de {page_number[2]}")
 
