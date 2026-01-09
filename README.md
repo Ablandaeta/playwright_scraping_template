@@ -12,6 +12,8 @@ Este es un **scraper web** personalizable construido con [Python](https://www.py
   - Evita reprocesar URLs ya visitadas.
   - Cierra pestañas secundarias automáticamente, incluso si ocurre un error.
 - **Navegación por Paginación**: Lógica integrada para navegar a través de múltiples páginas de resultados.
+- **Logging con Iconos**: Sistema de logging visual con emojis para fácil seguimiento del progreso.
+- **Seguimiento de Tiempo**: Muestra el tiempo de ejecución al finalizar o en caso de error.
 
 ## 📋 Requisitos Previos
 
@@ -37,53 +39,182 @@ Este es un **scraper web** personalizable construido con [Python](https://www.py
 
 ## ⚙️ Configuración
 
-El archivo `main.py` contiene marcadores de posición que **debes configurar** para adaptarlo a tu objetivo de scraping:
+El archivo `main.py` está organizado en secciones claramente definidas. Aquí están los elementos que **debes configurar**:
 
-1. **URL Objetivo**: 
-   Edita la variable `url` en la línea 12 con la dirección web inicial.
-   ```python
-   url = "https://ejemplo.com/lista-items"
-   ```
+### 1. Constantes de Configuración (líneas 18-34)
 
-2. **Selectores**:
-   Busca los comentarios `# Completar con el selector adecuado` y llena los métodos `locator()` con los atributos de los elementos de la página objetivo:
-   - **Elementos de lista** (línea 48): El contenedor de cada ítem a extraer.
-   - **Título/Datos** (línea 65): El dato específico dentro de la página de detalle.
-   - **Paginación** (líneas 103, 114): Selectores para el número de página actual/total y el botón "Siguiente".
+```python
+# =============================================================================
+# CONFIGURACIÓN
+# =============================================================================
+BASE_URL = "https://www.example.com"
+TARGET_URL = "https://www.example.com/page=1"
+PAGE_LOAD_TIMEOUT = 3000  # ms
+ELEMENT_LOAD_TIMEOUT = 1500  # ms
+INTER_REQUEST_DELAY = 500  # ms
 
-3. **Base URL** (Opcional):
-   Si los enlaces extraídos son relativos (ej: `/item/1`), configura `base_url` en la línea 53.
+# Encabezados de columnas CSV
+CSV_HEADERS = [["Título", "Fecha", "Document_URL"]]
 
-4. **Personaliza para tu necesidad**:
-   Esta plantilla es una estructura minimalista, puedes personalizarla para adaptarla a tus necesidades y a tu página objetivo ya que no todos los sitios web tienen la misma estructura y selectores. Puedes agregar más selectores, funciones, pestañas, etc. 
+# Configuración del navegador
+BROWSER_CONFIG = {
+    "headless": False,
+    # "executable_path": r"C:\ruta\a\navegador.exe",  # Opcional
+}
+```
+
+| Variable | Descripción |
+|----------|-------------|
+| `BASE_URL` | URL base del sitio (para construir URLs relativas) |
+| `TARGET_URL` | URL inicial con paginación (ej: `page=1`) |
+| `PAGE_LOAD_TIMEOUT` | Tiempo de espera después de cargar página principal (ms) |
+| `ELEMENT_LOAD_TIMEOUT` | Tiempo de espera después de cargar página de elemento (ms) |
+| `INTER_REQUEST_DELAY` | Delay entre peticiones para evitar bloqueos (ms) |
+| `CSV_HEADERS` | Encabezados de las columnas del CSV de salida |
+| `BROWSER_CONFIG` | Configuración de Playwright (headless, executable_path, etc.) |
+
+### 2. Selectores (busca `TODO:`)
+
+Debes completar los selectores de Playwright en estas líneas:
+
+| Línea | Propósito | Ejemplo |
+|-------|-----------|---------|
+| 170 | Elementos de lista a procesar | `page.locator('a.item-link').all()` |
+| 205 | URL del documento | `element_page.locator('a.download-btn')` |
+| 206 | Título del elemento | `element_page.locator('h1.title')` |
+| 207 | Fecha del elemento | `element_page.locator('span.date')` |
+| 252 | Información de paginación | `page.locator('span.page-info')` |
+
+### 3. Alternativas Comentadas
+
+El código incluye alternativas comentadas para diferentes escenarios:
+
+- **Paginación por URL vs botón** (líneas 152-155, 259-266)
+- **URLs relativas vs absolutas** (línea 175)
+- **Abrir pestañas con middle-click** (líneas 191-195)
+
+## 📂 Estructura del Proyecto
+
+```
+Web Scraping/
+├── main.py              # Lógica principal del scraper
+├── progress_state.py    # Módulo de gestión de estado y CSV
+├── scraping_results.csv # Archivo de salida (auto-generado)
+├── scraping_state.json  # Estado de progreso (auto-generado)
+├── pyproject.toml       # Dependencias del proyecto
+└── README.md            # Este archivo
+```
+
+### Estructura de `main.py`
+
+El archivo está organizado en secciones:
+
+```
+┌─────────────────────────────────────┐
+│ CONFIGURACIÓN                       │  ← Constantes y configuración
+├─────────────────────────────────────┤
+│ FUNCIONES UTILITARIAS               │  
+│  • create_route_interceptor()       │  ← Bloquea imágenes
+│  • create_new_page()                │  ← Crea páginas con interceptor
+│  • log_progress()                   │  ← Logging con iconos
+│  • log_time()                       │  ← Registra tiempo de ejecución
+├─────────────────────────────────────┤
+│ LÓGICA PRINCIPAL DE SCRAPING        │
+│  • run()                            │  ← Función principal
+├─────────────────────────────────────┤
+│ PUNTO DE ENTRADA                    │
+│  • if __name__ == "__main__"        │  ← Ejecución del script
+└─────────────────────────────────────┘
+```
+
+### Estructura de `progress_state.py`
+
+```
+┌─────────────────────────────────────┐
+│ CONFIGURACIÓN                       │
+│  • STATE_FILE, CSV_FILE             │  ← Nombres de archivos
+│  • DEFAULT_STATE                    │  ← Estado inicial
+├─────────────────────────────────────┤
+│ GESTIÓN DE ESTADO                   │
+│  • load_state()                     │  ← Carga estado previo
+│  • save_state()                     │  ← Guarda estado actual
+├─────────────────────────────────────┤
+│ GESTIÓN DE CSV                      │
+│  • save_to_csv_init()               │  ← Inicializa CSV con headers
+│  • save_to_csv()                    │  ← Añade filas al CSV
+└─────────────────────────────────────┘
+```
 
 ## ▶️ Uso
 
 Ejecuta el script principal:
 
 Si usas `uv`:
-   ```bash
-   uv run main.py
-   ```
+```bash
+uv run main.py
+```
 
 Si usas `pip`:
 ```bash
 python main.py
 ```
 
-- El scraper abrirá un navegador Chromium (visible por defecto para depuración).
-- Verás el progreso en la consola.
-- Los datos se guardarán en `scraping_results.csv`.
-- El estado (para reanudar) se guarda en `scraping_state.json`.
+### Salida en Consola
 
-## 📂 Estructura del Proyecto
+El scraper muestra progreso visual con emojis:
 
-- `main.py`: Lógica principal del scraper, flujo de navegación y extracción.
-- `progress_state.py`: Módulos auxiliares para cargar/guardar el estado JSON y manejar la escritura CSV.
-- `scraping_results.csv`: Archivo de salida (se genera automáticamente).
-- `scraping_state.json`: Archivo de control de progreso (se genera automáticamente).
+```
+📌 Tiempo de inicio: 2024-01-09 10:30:00
+📌 Iniciando desde la página 1
+📊 URLs ya procesadas: 0
+📊 Documentos ya procesados: 0
+📄 Procesando página 1 (25 elementos)
+✅ [1/25] ['Título del artículo', '2024-01-01', 'https://...']
+⏭️  [2/25] Ya procesada, saltando...
+⚠️  [3/25] No se encontró url
+💾 Guardados 23 registros de la página 1
+📍 Página 1 de 10
+...
+✅ ¡Scraping completado!
+⏱️  runtime: 0:15:32.456789
+📊 Total de registros extraídos: 250
+```
+
+## � Funciones Utilitarias
+
+### `log_progress(message, level)`
+
+Sistema de logging con niveles e iconos:
+
+| Level | Icono | Uso |
+|-------|-------|-----|
+| `info` | 📄 | Información general |
+| `success` | ✅ | Operación exitosa |
+| `warning` | ⚠️ | Advertencias |
+| `error` | ❌ | Errores |
+| `skip` | ⏭️ | Elementos saltados |
+| `save` | 💾 | Datos guardados |
+| `start` | 📌 | Inicio de proceso |
+| `stats` | 📊 | Estadísticas |
+| `nav` | ⏩ | Navegación |
+| `page` | 📍 | Información de página |
+| `time` | ⏱️ | Tiempo de ejecución |
+
+### `log_time(start_time)`
+
+Calcula y muestra el tiempo transcurrido desde `start_time`.
+
+### `create_new_page(browser, route_interceptor)`
+
+Crea una nueva página con el interceptor de imágenes configurado.
 
 ## ⚠️ Notas Importantes
 
-- Este script está configurado con `headless=False` (línea 14) para que veas el navegador trabajar. Para producción o mayor velocidad, cámbialo a `headless=True`.
+- Este script está configurado con `headless=False` para que veas el navegador trabajar.
+- Puedes especificar un navegador diferente (Chrome, Brave, Edge) usando `executable_path` en `BROWSER_CONFIG`.
 - Asegúrate de respetar los términos de servicio (ToS) y el archivo `robots.txt` del sitio web que estás scrapeando.
+- El código incluye type hints para mejor mantenibilidad y autocompletado en IDEs.
+
+## 📝 Licencia
+
+Este proyecto es una plantilla de uso libre. Modifícalo según tus necesidades.
