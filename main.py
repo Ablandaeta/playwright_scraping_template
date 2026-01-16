@@ -202,9 +202,9 @@ def run(playwright: Playwright) -> None:
                     
                 try:
                     # Extraer datos - TODO: Completar selectores
-                    document_url = element_page.locator("").nth(0).get_attribute("href")
+                    document_url = element_page.locator("").get_attribute("href")
                     title = element_page.locator("").text_content()
-                    date = element_page.locator("").nth(1).text_content()
+                    date = element_page.locator("").text_content()
 
                     # Manejar URL de documento faltante
                     if not document_url:
@@ -269,9 +269,9 @@ def run(playwright: Playwright) -> None:
             current_page += 1
 
     finally:
-        total_records = len(data) + len(processed_urls)
+        log_progress(f"registros extraídos: {len(data)}", "stats")
         log_time(start_time)
-        log_progress(f"Total de registros extraídos: {total_records}", "stats")
+        log_progress(f"Total de registros extraídos: {len(processed_urls)}", "stats")
         browser.close()
 
 
